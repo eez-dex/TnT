@@ -177,3 +177,28 @@ def score_attempt(questions: list[MCQQuestion], answers: list[dict]) -> dict:
         "by_section": dict(by_section),
         "by_topic": dict(by_topic),
     }
+
+def build_section(section_name: str, per_section: int, generator_fn) -> list[MCQQuestion]:
+    """
+    Build ONE section's worth of questions.
+    Tries cache first; generates the rest to fill the deficit.
+    """
+    all_q = db.get_all_questions()
+    pool = [q for q in all_q if subject_of(q["topic"]) == section_name]
+    random.shuffle(pool)
+    picked = [item["data"] for item in pool[:per_section]]
+
+    deficit = per_section - len(picked)
+    if deficit > 0:
+        topics = [t for t, s in TOPIC_TO_SUBJECT.items() if s == section_name]
+        for _ in range(deficit):
+            topic = random.choice(topics)
+            diff = random.choice(["Easy", "Medium", "Hard"])
+            try:
+                q, _src = generator_fn(topic, diff, prefer_cache=False)
+            except Exception:
+                q = None
+            if q:
+                picked.append(q)
+
+    return picked

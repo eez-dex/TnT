@@ -173,7 +173,42 @@ def get_question(topic: str, difficulty: str, prefer_cache: bool = True) -> tupl
 
     return None, "failed"
 
+def explain_mistake(q: MCQQuestion, chosen_index: int) -> str:
+    """
+    Ask the AI to generate a personalized explanation of why the user's
+    choice was wrong and how to avoid it in future.
+    """
+    letters = "ABCD"
+    prompt = f"""A student answered this SSC CGL question incorrectly.
 
+QUESTION: {q.question}
+
+OPTIONS:
+A. {q.options[0]}
+B. {q.options[1]}
+C. {q.options[2]}
+D. {q.options[3]}
+
+CORRECT ANSWER: {letters[q.answer_index]}. {q.options[q.answer_index]}
+STUDENT'S CHOICE: {letters[chosen_index]}. {q.options[chosen_index]}
+
+Write a helpful personalized explanation for the student in 3-4 short paragraphs:
+1. Walk through the correct method step by step.
+2. Point out the specific mistake — why would someone likely choose {letters[chosen_index]}?
+3. Give one exam tip to avoid this trap next time.
+
+Keep it concise, warm, and encouraging. Plain text only, no markdown headers."""
+
+    r = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[
+            {"role": "system", "content": "You are a patient, encouraging SSC CGL tutor."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.3,
+    )
+    return r.choices[0].message.content.strip()
+    
 # =========================================================
 # DISPLAY
 # =========================================================
